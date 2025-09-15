@@ -1,0 +1,107 @@
+﻿<Window x:Class="Awd.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Awd" 
+        xmlns:converters="clr-namespace:Awd.Converters"
+        mc:Ignorable="d"
+        Title="Awd" Height="450" Width="800">
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadCommand}"/>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Awd;component/WaitViewModelResource.xaml"/>
+                <ResourceDictionary>
+                    <converters:NullBoolConverter x:Key="nullTrue" Inverted="True" />
+                    <converters:NullToVisibilityConverter x:Key="nullHidden"/>
+                    <converters:AreEqualMultiConverter x:Key="areEqual"/>
+                    <converters:FileNameConverter x:Key="fileNameConverter"/>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition />
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open" Command="{Binding OpenCommand}"/>
+                <MenuItem Header="_Save As" Command="{Binding SaveAsCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
+                <MenuItem Header="_Close File" Command="{Binding CloseFileCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Action">
+                <MenuItem Header="_Replace File" Command="{Binding ReplaceFileCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
+                <MenuItem Header="_Extract File" Command="{Binding ExtractFileCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
+            </MenuItem>
+        </Menu>
+        <Grid IsEnabled="{Binding Overlay, Converter={StaticResource nullTrue}}" Grid.Row="1">
+            <TabControl ItemsSource="{Binding Files}" x:Name="tab">
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Bios.FileName, Converter={StaticResource fileNameConverter}}" />
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+                <TabControl.Resources>
+                    <Style TargetType="{x:Type TabItem}">
+                        <Setter Property="IsSelected" Value="true"/>
+                    </Style>
+                </TabControl.Resources>
+                <TabControl.ContentTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition Height="50"/>
+                            </Grid.RowDefinitions>
+
+
+                            <DataGrid ItemsSource="{Binding Bios.ModulesView}" SelectedItem="{Binding SelectedFile}" CanUserAddRows="False" 
+                                      CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserSortColumns="False" 
+                                      IsReadOnly="True" AutoGenerateColumns="False"  >
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding Name}" Header="Name" />
+                                    <DataGridTextColumn Binding="{Binding Offset,StringFormat=X8}" Header="Offset X" />
+                                    <DataGridTextColumn Binding="{Binding Offset}" Header="Offset" SortDirection="Ascending"/>
+                                    <DataGridTextColumn Binding="{Binding Type, StringFormat=X4}" Header="Type" />
+                                    <DataGridTextColumn Binding="{Binding CompressedSize}" Header="Compressed Size" />
+                                    <DataGridTextColumn Binding="{Binding Decompressed.Length}" Header="Decompressed Size" />
+                                    <DataGridTextColumn Binding="{Binding RealCRC,StringFormat=X4}" Header="CRC" />
+                                    <DataGridCheckBoxColumn Header="CRC OK">
+                                        <DataGridCheckBoxColumn.Binding>
+                                            <MultiBinding Converter="{StaticResource areEqual}">
+                                                <Binding Path="RealCRC" Mode="OneWay"/>
+                                                <Binding Path="ExpectedCRC" Mode="OneWay"/>
+                                            </MultiBinding>
+                                        </DataGridCheckBoxColumn.Binding>
+                                    </DataGridCheckBoxColumn>
+
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <ScrollViewer Grid.Row="2">
+                                <ItemsControl ItemsSource="{Binding Log}" />
+                            </ScrollViewer>
+                        </Grid>
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
+
+
+        </Grid>
+
+        <ContentControl Content="{Binding Overlay}" Grid.Row="1" Grid.RowSpan="2" Visibility="{Binding Overlay, Converter={StaticResource nullHidden}}"/>
+    </Grid>
+</Window>
