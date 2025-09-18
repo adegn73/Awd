@@ -379,6 +379,10 @@ namespace Awd
             this.Data = lzhhdr.fullImage.Skip(Offset.GetValueOrDefault()).Take(lzhhdr.compressedSize + (lzhhdra.lzhStartOffset - Offset.GetValueOrDefault() + 1)).ToArray();
         }
 
+        public LzhModule()
+        {
+        }
+
         public byte[] Decompressed { get; private set; }
         public byte[] Data { get; private set; }
         public int? Offset { get { return lzhhdr.offset; } }
@@ -434,9 +438,11 @@ namespace Awd
         internal void Replace(string fileName)
         {
             var data = File.ReadAllBytes(fileName);
+            var offset = this.lzhhdr.offset;
             Compress(Path.GetFileName(fileName), data);
             this.lzhhdr = LzhHeader.FromBytes(this.Data, 0, true);
             this.lzhhdra = LzhHeaderAfterFilename.FromBytes(this.Data, lzhhdr.headerSize - 3); // adjust offset as needed
+            this.lzhhdr.offset = offset;
         }
 
         internal void Compress(string fileName, byte[] data)

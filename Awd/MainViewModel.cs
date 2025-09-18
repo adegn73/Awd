@@ -38,7 +38,6 @@ namespace Awd
         {
             if (bios.SelectedFile is LzhModule lzhModule)
             {
-
                 var openFile = new OpenFileDialog();
                 openFile.Multiselect = false;
 
@@ -51,6 +50,26 @@ namespace Awd
                 }
             }
         }, bios => bios?.SelectedFile is LzhModule);
+
+        public ICommand AddFileCommand => new Awd.MVVM.RelayCommand<BiosViewModel>(bios =>
+        {
+            if (bios.SelectedFile is LzhModule lzhModule)
+            {
+                var openFile = new OpenFileDialog();
+                openFile.Multiselect = false;
+
+                if (openFile.ShowDialog().GetValueOrDefault())
+                {
+                    var fileName = openFile.FileName;
+                    var itemBefore = bios.Bios.ModulesView.OfType<LzhModule>().LastOrDefault(m => !m.IsFixedOffset);
+                    var index = bios.Bios.ModulesView.IndexOf(itemBefore) + 1;
+                    var newModule = new LzhModule();
+                    newModule.Replace(fileName);
+                    bios.Bios.ModulesView.Insert(index, newModule);
+                    bios.Refresh();
+                }
+            }
+        });
 
         public ICommand ExtractFileCommand => new Awd.MVVM.RelayCommand<BiosViewModel>(bios =>
         {

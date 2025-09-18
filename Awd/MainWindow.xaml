@@ -46,6 +46,7 @@
             <MenuItem Header="_Action">
                 <MenuItem Header="_Replace File" Command="{Binding ReplaceFileCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
                 <MenuItem Header="_Extract File" Command="{Binding ExtractFileCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
+                <MenuItem Header="_Add File" Command="{Binding AddFileCommand}" CommandParameter="{Binding ElementName=tab, Path=SelectedItem, UpdateSourceTrigger=PropertyChanged}"/>
             </MenuItem>
         </Menu>
         <Grid IsEnabled="{Binding Overlay, Converter={StaticResource nullTrue}}" Grid.Row="1">
