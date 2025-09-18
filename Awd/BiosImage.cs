@@ -202,7 +202,6 @@ namespace Awd
                 return;
             }
 
-
             // add fixed offset modules
             while (count < Math.Min(data.Length - 6, (decompressionBlock?.Offset).GetValueOrDefault()))
             {
@@ -218,7 +217,7 @@ namespace Awd
                     fileCount++;
                     count += 2 + lzhhdr.headerSize + (int)lzhhdr.compressedSize;
                 }
-                count += 2;
+                count ++;
             }
 
             foreach (var mod in modules.OfType<LzhModule>())
