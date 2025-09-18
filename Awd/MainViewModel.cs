@@ -51,6 +51,14 @@ namespace Awd
             }
         }, bios => bios?.SelectedFile is LzhModule);
 
+        public ICommand DeleteFileCommand => new Awd.MVVM.RelayCommand<BiosViewModel>(bios =>
+        {
+            if (bios.SelectedFile is LzhModule lzhModule)
+            {
+                bios.Bios.ModulesView.Remove(lzhModule);
+            }
+        }, bios => bios?.SelectedFile is LzhModule);
+
         public ICommand AddFileCommand => new Awd.MVVM.RelayCommand<BiosViewModel>(bios =>
         {
             if (bios.SelectedFile is LzhModule lzhModule)

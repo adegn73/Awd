@@ -9,34 +9,36 @@ namespace Awd
 {
     public class BiosImage
     {
-        private readonly byte[] data;
+        public byte[] Data { get; }
+        private IChecksumFixer checksumFixer;
+
         public ObservableCollection<IBiosModule> ModulesView { get; } = new ObservableCollection<IBiosModule>();
 
         public BiosImage(byte[] data, string fileName)
         {
             Lzh.lzhInit();
-            this.data = data;
+            this.Data = data;
             FileName = fileName;
             this.IsValid = IsValidFile();
         }
 
         public bool IsValid { get; }
         public string FileName { get; }
-        public int ImageSize => data.Length;
+        public int ImageSize => Data.Length;
 
         public Layout TableLayout { get; private set; }
         public int? TableOffset { get; private set; }
         public int MaxTableSize { get; private set; }
         public AwdbeBIOSVersion ImageVersion { get; private set; }
-        public byte ChecksumSeed { get; private set; }
+        public byte ChecksumSeed { get; set; }
 
         private bool IsValidFile()
         {
 
-            var xEa = data[data.Length - 16];
-            var mRb = Encoding.ASCII.GetString(data, data.Length - 11, 4);
+            var xEa = Data[Data.Length - 16];
+            var mRb = Encoding.ASCII.GetString(Data, Data.Length - 11, 4);
 
-            if (xEa != 0xEA || mRb != "*MRB" || data.Length % 1024 != 0 || data.Length > (1024 * 1024))
+            if (xEa != 0xEA || mRb != "*MRB" || Data.Length % 1024 != 0 || Data.Length > (1024 * 1024))
                 return false;
 
             return true;
@@ -53,9 +55,9 @@ namespace Awd
             var count = ImageSize - BootBlockSignature.Length;
             while (count-- != 0)
             {
-                if (Encoding.ASCII.GetString(data, count, BootBlockSignature.Length).Equals(BootBlockSignature, StringComparison.InvariantCultureIgnoreCase))
+                if (Encoding.ASCII.GetString(Data, count, BootBlockSignature.Length).Equals(BootBlockSignature, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var bootBlock = new BiosModule(data.Skip(count).ToArray(), count, BootBlockSignature, TYPEID_BOOTBLOCK);
+                    var bootBlock = new BiosModule(Data.Skip(count).ToArray(), count, BootBlockSignature, TYPEID_BOOTBLOCK);
                     modules.Add(bootBlock);
                     break;
                 }
@@ -63,7 +65,7 @@ namespace Awd
             count = ImageSize - DecompBlockSignature.Length;
             while (count-- != 0)
             {
-                if (Encoding.ASCII.GetString(data, count, DecompBlockSignature.Length).Equals(DecompBlockSignature, StringComparison.InvariantCultureIgnoreCase))
+                if (Encoding.ASCII.GetString(Data, count, DecompBlockSignature.Length).Equals(DecompBlockSignature, StringComparison.InvariantCultureIgnoreCase))
                 {
                     break;
                 }
@@ -71,20 +73,18 @@ namespace Awd
             var endOfDecompBlock = modules.FirstOrDefault(m => m.Name == BootBlockSignature)?.Offset ?? ImageSize;
             while (count-- > 32)
             {
-                var blockOf32 = data.Skip(count - 32).Take(32).ToArray();
+                var blockOf32 = Data.Skip(count - 32).Take(32).ToArray();
                 if (blockOf32.All(b => b == 0xFF))
                     break;
             }
-            var decompressionBlock = new BiosModule(data.Skip(count).Take(endOfDecompBlock - count).ToArray(), count, DecompBlockSignature, TYPEID_DECOMPBLOCK);
+            var decompressionBlock = new BiosModule(Data.Skip(count).Take(endOfDecompBlock - count).ToArray(), count, DecompBlockSignature, TYPEID_DECOMPBLOCK);
             modules.Add(decompressionBlock);
 
-            var checksumPosition = FindChecksumPosition(this.data);
-            this.ChecksumSeed = (byte)((data[checksumPosition + 1] - data[checksumPosition]) & 0xFF);
             // load the file table
 
-            for (int i = 0; i < data.Length - 5; i++)
+            for (int i = 0; i < Data.Length - 5; i++)
             {
-                if (StringCompare(data, i + 2, "-lh"))
+                if (StringCompare(Data, i + 2, "-lh"))
                 {
                     TableOffset = (i);
                     break;
@@ -104,13 +104,13 @@ namespace Awd
             int fileCount = 0;
 
             // First pass: count files and determine layout
-            while (count < data.Length)
+            while (count < Data.Length)
             {
-                var lzhhdr = LzhHeader.FromBytes(data, count, true);
+                var lzhhdr = LzhHeader.FromBytes(Data, count, true);
                 if (lzhhdr.headerSize == 0 || lzhhdr.headerSize == 0xFF)
                     break;
 
-                var lzhhdra = LzhHeaderAfterFilename.FromBytes(data, count + lzhhdr.headerSize - 3); // adjust offset as needed
+                var lzhhdra = LzhHeaderAfterFilename.FromBytes(Data, count + lzhhdr.headerSize - 3); // adjust offset as needed
 
                 modules.Add(new LzhModule(lzhhdr, lzhhdra));
                 fileCount++;
@@ -118,12 +118,12 @@ namespace Awd
 
                 if (fileCount == 1)
                 {
-                    if (StringCompare(data, count + 4, "-lh"))
+                    if (StringCompare(Data, count + 4, "-lh"))
                     {
                         TableLayout = Layout.Layout_2_2_2;
                         count += 2;
                     }
-                    else if (StringCompare(data, count + 3, "-lh"))
+                    else if (StringCompare(Data, count + 3, "-lh"))
                     {
                         TableLayout = Layout.Layout_1_1_1;
                         count += 1;
@@ -131,7 +131,7 @@ namespace Awd
                 }
                 else
                 {
-                    if (StringCompare(data, count + 4, "-lh"))
+                    if (StringCompare(Data, count + 4, "-lh"))
                     {
                         if (TableLayout == Layout.Layout_2_2_2)
                         {
@@ -142,7 +142,7 @@ namespace Awd
                             TableLayout = Layout.Layout_UNKNOWN;
                         }
                     }
-                    else if (StringCompare(data, count + 3, "-lh"))
+                    else if (StringCompare(Data, count + 3, "-lh"))
                     {
                         if (TableLayout == Layout.Layout_2_2_2)
                         {
@@ -170,7 +170,7 @@ namespace Awd
                         switch (TableLayout)
                         {
                             case Layout.Layout_2_2_2:
-                                if (data[count + 2] == 0xFF || data[count + 2] == 0x00)
+                                if (Data[count + 2] == 0xFF || Data[count + 2] == 0x00)
                                 {
                                     count += 2;
                                 }
@@ -182,7 +182,7 @@ namespace Awd
 
                             case Layout.Layout_2_1_1:
                             case Layout.Layout_1_1_1:
-                                if (data[count + 1] == 0xFF || data[count + 1] == 0x00)
+                                if (Data[count + 1] == 0xFF || Data[count + 1] == 0x00)
                                 {
                                     count++;
                                 }
@@ -203,15 +203,15 @@ namespace Awd
             }
 
             // add fixed offset modules
-            while (count < Math.Min(data.Length - 6, (decompressionBlock?.Offset).GetValueOrDefault()))
+            while (count < Math.Min(Data.Length - 6, (decompressionBlock?.Offset).GetValueOrDefault()))
             {
-                if (StringCompare(data, count + 2, "-lh"))
+                if (StringCompare(Data, count + 2, "-lh"))
                 {
-                    var lzhhdr = LzhHeader.FromBytes(data, count, true);
+                    var lzhhdr = LzhHeader.FromBytes(Data, count, true);
                     if (lzhhdr.headerSize == 0 || lzhhdr.headerSize == 0xFF)
                         break;
 
-                    var lzhhdra = LzhHeaderAfterFilename.FromBytes(data, count + lzhhdr.headerSize - 3); // adjust offset as needed
+                    var lzhhdra = LzhHeaderAfterFilename.FromBytes(Data, count + lzhhdr.headerSize - 3); // adjust offset as needed
 
                     modules.Add(new LzhModule(lzhhdr, lzhhdra) { IsFixedOffset = true });
                     fileCount++;
@@ -225,9 +225,12 @@ namespace Awd
                 mod.Decompress();
             }
 
+
             this.ModulesView.AddRange(modules.OrderBy(m => m.Offset));
             var systemBios = modules.FirstOrDefault(m => m.Type == 0x5000);
             this.ImageVersion = GetImageVersion(systemBios);
+
+            this.checksumFixer = ChecksumFixer.GetChecksumFixer(this);
         }
 
         private AwdbeBIOSVersion GetImageVersion(IBiosModule systemBios)
@@ -295,11 +298,10 @@ namespace Awd
                 Array.Copy(mod.Data, 0, data, mod.Offset.Value, Math.Min(mod.Data.Length, data.Length - mod.Offset.Value));
             }
 
-            if (ImageVersion == AwdbeBIOSVersion.Ver600PG && !skipChecksum)
-                FixChecksum(data, this.ChecksumSeed);
+            if (!skipChecksum)
+                this.checksumFixer.FixChecksum(data);
 
             File.WriteAllBytes(fileName, data);
-
         }
 
         private void AddSeparator(List<byte> dataList, int i, LzhModule mod)
@@ -326,43 +328,7 @@ namespace Awd
             return (byte)(data.Sum(b => b) & 0xFF);
         }
 
-        public static int FixChecksum(byte[] rom, byte csum2Seed)
-        {
-            var pos = FindChecksumPosition(rom);
-
-            byte csum1 = 0x00;
-            byte csum2 = csum2Seed; // common seeds: 0xF8 (typical), 0x6E (seen in some builds)
-            var i = pos;
-
-            while (i-- > 0)
-            {
-                csum1 += rom[i];
-                csum2 += rom[i];
-            }
-
-            rom[pos] = csum1;
-            rom[pos + 1] = csum2;
-            return pos;
-        }
-        public static int FindChecksumPosition(byte[] rom)
-        {
-            var needle = Encoding.ASCII.GetBytes("Award Decompression");
-            for (int i = 0; i <= rom.Length - needle.Length; i++)
-            {
-                int j = 0;
-                while (j < needle.Length && rom[i + j] == needle[j]) j++;
-                if (j == needle.Length)
-                {
-                    int pageBase = i & ~0xFFF;   // align down to 4 KiB page
-                    int pos = pageBase + 0x0FFE;           // where the two checksum bytes live
-                    if (pos + 1 >= rom.Length)
-                        throw new InvalidOperationException("Calculated checksum position out of bounds.");
-
-                    return pos;
-                }
-            }
-            throw new InvalidOperationException("Could not locate decompressor (\"Award Decompression\"). Provide decompStartOverride.");
-        }
+        
     }
 
 
