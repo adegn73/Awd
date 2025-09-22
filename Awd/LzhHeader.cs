@@ -51,5 +51,11 @@
             }
 
         }
+
+        internal void UpdateHeaderSum(byte sum)
+        {
+            headerSum = sum;
+            fullImage[offset + 1] = headerSum;
+        }
     }
 }

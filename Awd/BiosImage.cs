@@ -362,7 +362,19 @@ namespace Awd
             set
             {
                 lzhhdr.UpdateFileType((ushort)value);
+                lzhhdr.UpdateHeaderSum(GetSum());
             }
+        }
+
+        private byte GetSum()
+        {
+            byte sum = 0;
+            for (int i = 2; i < lzhhdra.lzhStartOffset - Offset; i++)
+            {
+                if (i != 1) // skip checksum byte
+                    sum += Data[i];
+            }
+            return sum;
         }
 
         public bool IsFixedOffset { get; internal set; }
