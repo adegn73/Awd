@@ -23,6 +23,13 @@
                     <converters:NullToVisibilityConverter x:Key="nullHidden"/>
                     <converters:AreEqualMultiConverter x:Key="areEqual"/>
                     <converters:FileNameConverter x:Key="fileNameConverter"/>
+
+                    <DataTemplate DataType="{x:Type local:AddFileViewModel}">
+                        <Grid>
+                            <Border Background="Black" Opacity="0.4"/>
+                            <local:AddFileView HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </DataTemplate>
                 </ResourceDictionary>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

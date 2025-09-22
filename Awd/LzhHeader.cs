@@ -40,5 +40,16 @@
             Array.Copy(data, offset + 22, hdr.filename, 0, hdr.filenameLen);
             return hdr;
         }
+
+        internal void UpdateFileType(ushort value)
+        {
+            if (fileType != value)
+            {
+                fileType = value;
+                fullImage[offset + 17] = (byte)(value & 0xFF);
+                fullImage[offset + 18] = (byte)((value >> 8) & 0xFF);
+            }
+
+        }
     }
 }

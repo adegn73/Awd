@@ -61,22 +61,32 @@ namespace Awd
 
         public ICommand AddFileCommand => new Awd.MVVM.RelayCommand<BiosViewModel>(bios =>
         {
-            if (bios.SelectedFile is LzhModule lzhModule)
-            {
-                var openFile = new OpenFileDialog();
-                openFile.Multiselect = false;
-
-                if (openFile.ShowDialog().GetValueOrDefault())
+            var addFileViewModel = new AddFileViewModel();
+            addFileViewModel.CloseAction = b =>
                 {
-                    var fileName = openFile.FileName;
-                    var itemBefore = bios.Bios.ModulesView.OfType<LzhModule>().LastOrDefault(m => !m.IsFixedOffset);
-                    var index = bios.Bios.ModulesView.IndexOf(itemBefore) + 1;
-                    var newModule = new LzhModule();
-                    newModule.Replace(fileName);
-                    bios.Bios.ModulesView.Insert(index, newModule);
-                    bios.Refresh();
-                }
-            }
+                    if (b)
+                    {
+                        var fileName = addFileViewModel.FilePath;
+                        var itemBefore = bios.Bios.ModulesView.OfType<LzhModule>().LastOrDefault(m => !m.IsFixedOffset);
+                        var index = bios.Bios.ModulesView.IndexOf(itemBefore) + 1;
+                        var newModule = new LzhModule();
+                        newModule.Replace(fileName);
+                        newModule.Type = addFileViewModel.FileType.TypeId;
+                        newModule.IsFixedOffset = !string.IsNullOrWhiteSpace(addFileViewModel.FixedOffset);
+                        if (newModule.IsFixedOffset)
+                            newModule.Offset = int.Parse(addFileViewModel.FixedOffset, System.Globalization.NumberStyles.HexNumber);
+                        else
+                            newModule.Offset = itemBefore.Offset + itemBefore.Data.Length + 2;
+                        bios.Bios.ModulesView.Insert(index, newModule);
+                        bios.Refresh();
+                    }
+                    this.Overlay = null;
+
+                };
+
+            this.Overlay = addFileViewModel;
+
+
         });
 
         public ICommand ExtractFileCommand => new Awd.MVVM.RelayCommand<BiosViewModel>(bios =>

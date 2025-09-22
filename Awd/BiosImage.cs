@@ -217,7 +217,7 @@ namespace Awd
                     fileCount++;
                     count += 2 + lzhhdr.headerSize + (int)lzhhdr.compressedSize;
                 }
-                count ++;
+                count++;
             }
 
             foreach (var mod in modules.OfType<LzhModule>())
@@ -328,7 +328,7 @@ namespace Awd
             return (byte)(data.Sum(b => b) & 0xFF);
         }
 
-        
+
     }
 
 
@@ -350,13 +350,20 @@ namespace Awd
 
         public byte[] Decompressed { get; private set; }
         public byte[] Data { get; private set; }
-        public int? Offset { get { return lzhhdr.offset; } }
+        public int? Offset { get { return lzhhdr.offset; } set { lzhhdr.offset = value.GetValueOrDefault(); } }
         public string Name { get { return System.Text.Encoding.ASCII.GetString(lzhhdr.filename, 0, lzhhdr.filenameLen); } }
         public int CompressedSize { get { return lzhhdr.compressedSize; } }
         public int ExpectedCRC { get { return lzhhdra.crc; } }
         public int RealCRC { get; private set; }
 
-        public int Type => lzhhdr.fileType;
+        public int Type
+        {
+            get { return lzhhdr.fileType; }
+            set
+            {
+                lzhhdr.UpdateFileType((ushort)value);
+            }
+        }
 
         public bool IsFixedOffset { get; internal set; }
 
